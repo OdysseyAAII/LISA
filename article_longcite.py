@@ -1,0 +1,50 @@
+
+path_model=r'/data/@Zilong_Works/Data/SourceData/Model_Weight_Cache/Reasoning_LLM/LongCite/LongCite-llama3.1-8b'
+root_save=r'/data/@Zilong_Works/Code/Article_Write/word_doc/'
+from docx import Document
+
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
+tokenizer = AutoTokenizer.from_pretrained(path_model, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(path_model, torch_dtype=torch.bfloat16, trust_remote_code=True, device_map='auto')
+
+article_title='Supporting Your Idea Reasonably:  A Knowledge-Aware Topic Reasoning  Strategy for Citation Recommendation'
+
+context = 'Automatically extracting key information from scientific documents has the potential to help scientists work more efficiently and accelerate the pace of scientific progress. Prior work has considered extracting documentlevel entity clusters and relations end-to-end from raw scientific text, which can improve literature search and help identify methods and materials for a given problem. Despite the importance of this task, most existing works on scientific information extraction (SciIE) consider extraction solely based on the content of an individual paper, without considering the paper’s place in the broader literature. In contrast to prior work, we augment our text representations by leveraging a complementary source of document context: the citation graph of referential links between citing and cited papers. On a test set of English-language scientific documents, we show that simple ways of utilizing the structure and content of the citation graph can each lead to significant gains in different scientific information extraction tasks. When these tasks are combined, we observe a sizable improvement in end-to-end information extraction over the state-of-the-art, suggesting the potential for future work along this direction. We release software tools to facilitate citation-aware SciIE development. The rapid expansion in published scientific knowledge has enormous potential for good, if it can only be harnessed correctly. For example, during the first five months of the global COVID-19 pandemic, at least 11000 papers were published online about the novel disease (Hallenbeck, 2020), with each representing a potential faster end to a global pandemic and saved lives. Despite the value of this quantity of focused research, it is infeasible for the scientific community to read this many papers in a time-critical situation, and make accurate judgements to help separate signal from the noise. To this end, how can machines help researchers quickly identify relevant papers? One step in this direction is to automatically extract and organize scientific information (e.g. important concepts and their relations) from a collection of research articles, which could help researchers identify new methods or materials for a given task. Scientific information extraction (SciIE) (Gupta and Manning, 2011; Yogatama et al., 2011), which aims to extract structured information from scientific articles, has seen growing interest recently, as reflected in the rapid evolution of systems and datasets (Luan et al., 2018; G ́abor et al., 2018; Jain et al., 2020). Existing works on SciIE revolve around extraction solely based on the content of different parts of an individual paper, such as the abstract or conclusion (Augenstein et al., 2017; Luan et al., 2019). However, scientific papers do not exist in a vacuum — they are part of a larger ecosystem of papers, related to each other through different conceptual relations. In this paper, we claim a better under standing of a research article relies not only on its content but also on its relations with associated works, using both the content of related papers and the paper’s position in the larger citation network.  We use a concrete example to motivate how information from the citation graph helps with SciIE, considering the task of identifying key entities in a long document (known as “salient entity classification”) in Figure 1.  In this example, we see a paper describing a speech recognition system (Saon et al., 2016). Focusing on two specific entities in the paper (“ImageNet classification challenge” and “Switchboard task”), we are tasked with classifying whether each is critical to the paper. This task requires reasoning about each entity in relation to the central topic of the paper, which is a daunting task for NLP considering that this paper contains over 3000 words across 11 sections. An existing state-of-the-art model (Jain et al., 2020) mistakenly predicts the non-salient entity “ImageNet classification challenge” as salient due to the limited contextual information. However, this problem is more approachable when informed of the structure of the citation graph that conveys how this paper correlates with other research works. Examining this example paper’s position in the surrounding citation network suggests it is concerned with speech processing, which makes it unlikely that “ImageNet” is salient.2  The clear goal of incorporating inter-article information, however, is hindered by a resource challenge: existing SciIE datasets that annotate papers with rich entity and relation information fail to include their references in a fine-grained, machinereadable way. To overcome this difficulty, we build on top of an existing SciIE dataset and align it with a source of citation graph information, which finally allows us to explore citation-aware SciIE.  Architecturally, we adopt the neural multi-task model introduced by Jain et al. (2020), and establish a proof of concept by comparing simple ways of incorporating the network structure and textual content of the citation graph into this model. Experimentally, we rigorously evaluate our methods, which we call CitationIE, on three tasks: mention identification, salient entity classification, and document-level relation extraction. We find that leveraging citation graph information provides significant improvements in the latter two tasks, in cluding a 10 point improvement on F1 score for relation extraction. This leads to a sizable increase in the performance of the end-to-end CitationIE system relative to the current state-of-the-art, Jain et al. (2020). We offer qualitative analysis of why our methods may work in §5.3. We consider the task of extracting document-level relations from scientific texts. Most work on scientific information extraction has used annotated datasets of scientific abstracts, such as those provided for SemEval 2017 and SemEval 2018 shared tasks (Augenstein et al., 2017; Ga ́bor et al., 2018), the SciERC dataset (Luan et al., 2018), and the BioCreative V Chemical Disease Relation dataset (Wei et al., 2016). We focus on the task of open-domain documentlevel relation extraction from long, full-text documents. This is in contrast to the above methods that only use paper abstracts. Our setting is also different from works that consider a fixed set of candidate relations (Hou et al., 2019; Kardas et al., 2020) or those that only consider IE tasks other than relation extraction, such as entity recognition (Verspoor et al., 2011). We base our task definition and baseline models on the recently released SciREX dataset (Jain et al., 2020), which contains 438 annotated papers,3 all related to machine learning research. Each document consists of sections D = {S1, . . . , SN }, where each section contains a sequence of words Si = {wi,1, . . . , wi,Ni}. Each document comes with annotations of entities, coreference clusters, cluster-level saliency labels, and 4-ary document-level relations. We break down the end-to-end information extraction process as a sequence of these four related tasks, with each task taking the output of the preceding tasks as input.  Mention Identification For each span of text within a section, this task aims to recognize if the span describes a Task, Dataset, Method, or Metric entity, if any.  Coreference This task requires clustering all entity mentions in a document such that, in each cluster, every mention refers to the same entity (Varkel and Globerson, 2020). The SciREX dataset includes coreference annotations for each Task,  Dataset, Method, and Metric mention.  Salient Entity Classification Given a cluster of mentions corresponding to the same entity, the model must predict whether the entity is key to the work described in a paper. We follow the definition from the SciREX dataset (Jain et al., 2020), where an entity in a paper is deemed salient if it plays a role in the paper’s evaluation.  Relation Extraction The ultimate task in our IE pipeline is relation extraction. We consider relations as 4-ary tuples of typed entities  (ETask, EDataset, EMethod, EMetric), which are  required to be salient entities. Given a set of candidate relations, we must determine which relations are contained in the main result of the paper.'
+query = "Introduce me about the CITATION recommendation"
+
+result = model.query_longcite(context, query, tokenizer=tokenizer, max_input_length=128000, max_new_tokens=1024)
+print("Answer:\n{}\n".format(result['answer']))
+print("Context (divided into sentences):\n{}\n".format(result['splited_context']))
+
+
+statements_with_citations=result['statements_with_citations']
+out_str=article_title+'\n' + "\n"
+for one_st in statements_with_citations:
+    out_str=out_str+one_st['statement'] + "\n" + "\n"
+    for one_cit in one_st['citation']:
+        out_str=out_str+one_cit['cite'] + "\n" + "\n" + "\n" + "\n"
+
+
+# 创建一个 Word 文档对象
+doc = Document()
+doc.add_paragraph(out_str)
+# 保存 Word 文档
+doc.save(root_save+"example.docx")
+    
+
+
+
+
+# 放置一个列表来放置对应句子序号和内容
+splited_context_list_=result['splited_context'].split('<C')[1:]
+splited_context_list=[]
+for i in splited_context_list_:
+    splited_context_list.append(i.split('>')[-1])
+    
+print(splited_context_list)
+
+
+# 使用标准化内容方式来写论文，首先将论文
+pass

@@ -48,6 +48,10 @@ class PromptEncoder(nn.Module):
         ]
         self.point_embeddings = nn.ModuleList(point_embeddings)
         self.not_a_point_embed = nn.Embedding(1, embed_dim)
+        
+        # todo
+        self.device= torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
 
         self.mask_input_size = (
             4 * image_embedding_size[0],
@@ -63,6 +67,7 @@ class PromptEncoder(nn.Module):
             nn.Conv2d(mask_in_chans, embed_dim, kernel_size=1),
         )
         self.no_mask_embed = nn.Embedding(1, embed_dim)
+        pass
 
     def get_dense_pe(self) -> torch.Tensor:
         """
@@ -135,7 +140,8 @@ class PromptEncoder(nn.Module):
             return 1
 
     def _get_device(self) -> torch.device:
-        return self.point_embeddings[0].weight.device
+        return self.point_embeddings[0].weight.device # todo
+        # return self.device # todo
 
     def forward(
         self,

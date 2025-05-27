@@ -380,12 +380,13 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
             hidden_states.append(self.model.text_hidden_fcs[0](output_hidden_states))
 
             last_hidden_state = torch.stack(hidden_states, dim=-1).sum(dim=-1)
+            seg_token_mask=seg_token_mask.to(last_hidden_state.device)
             pred_embeddings = last_hidden_state[seg_token_mask]
 
             seg_token_counts = seg_token_mask.int().sum(-1)  # [bs, ]
             seg_token_offset = seg_token_counts.cumsum(-1)
             seg_token_offset = torch.cat(
-                [torch.zeros(1).long().cuda(), seg_token_offset], dim=0
+                [torch.zeros(1).long().cuda().to(seg_token_offset.device), seg_token_offset], dim=0
             )
 
             pred_embeddings_ = []
@@ -408,7 +409,7 @@ class LISAForCausalLM(LlavaLlamaForCausalLM):
                     masks=None,
                     text_embeds=pred_embeddings[i].unsqueeze(1),
                 )
-
+                
                 sparse_embeddings = sparse_embeddings.to(pred_embeddings[i].dtype)
                 low_res_masks, iou_predictions = self.model.visual_model.mask_decoder(
                     image_embeddings=image_embeddings[i].unsqueeze(0),
